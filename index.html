@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Web based Serial Terminal</title>
+	<link rel="stylesheet" href="jquery-ui.css">
+    <link href="https://fonts.cdnfonts.com/css/digital-7-mono" rel="stylesheet">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+	
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link rel="stylesheet" href="https://cdn.metroui.org.ua/current/metro.css">
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src='serial.js'></script>              
+	<style>
+	body{
+		text-align:center;
+	}
+	/*-------------------*/
+	.grid-containerNew {
+	  margin:auto;
+	  display: grid;
+	  grid-template-columns: auto auto auto auto;
+	  gap: 10px;
+	  background-image: linear-gradient(gray, #5c759e);
+	  padding: 10px;
+	  width:800px;
+	  border-radius:10px;
+	  font-family: 'Digital-7 Mono', sans-serif;
+	}
+	
+	.grid-container {
+	  margin:auto;
+	  display: grid;
+	  grid-template-columns: auto auto auto auto;
+	  gap: 10px;
+	  background-image: linear-gradient(gray, #5c759e);
+	  padding: 10px;
+	  width:800px;
+	  border-radius:10px;
+	}
+	
+	.grid-container > div {
+	  background-color: black;
+	  border: 1px solid black;
+	  text-align: center;
+	  font-size: 40px;
+	  color:#18F7E8;
+	  max-width:150px;
+	  font-family: 'Digital-7 Mono', sans-serif;
+	  padding:15px;
+	}
+  </style>        
+   
+</head>
+<body>
+	<div style="display:inline-block; vertical-align:top;">
+		<h5>Baud Rate: 
+			<select style='width:200px;margin:auto' class="browser-default" name="speed" id="SerialSpeed">
+			  <option value="1200">1200</option>
+			  <option value="2400">2400</option>
+			  <option value="4800">4800</option>
+			  <option value="9600">9600</option>
+			  <option value="19200">19200</option>
+			  <option value="38400">38400</option>
+			  <option value="57600">57600</option>
+			  <option value="115200">115200</option>
+			</select><br>
+			<button id="SerialConnectButton" type="button" class="btn btn-success" disabled>Connect</button>
+		</h5>
+		
+		<h3>MC Terminal</h3>
+		<p>Cor display: <input onchange='setColor(this.value)' type='color' style='width:100px' value="#e66465" id='cl'></p>
+		<br>
+		<button onclick='sendBytes()' class="btn waves-effect waves-light" name="action">SendBytes()
+			<i class="material-icons right">send</i>
+		</button>
+		<button onclick='sendString()' class="btn waves-effect waves-light" name="action">SendString()
+			<i class="material-icons right">send</i>
+		</button>
+		<br><br>
+		<p style='color:gray;' id='time'></p>
+		<div id='view'></div>
+		<div style='display:none' class='grid-containerNew'>
+			<div id="donut1" data-role="donut" data-value="0"
+			data-hole=".6" data-font-size='40' data-color="#084240" data-background="transparent" data-stroke="white" data-fill="#1eb0a9"
+			data-animate="10" data-size="150">
+			</div>
+			<div id="donut2" data-role="donut" data-value="0"
+			data-hole=".6" data-font-size='40' data-color="#084240" data-background="transparent" data-stroke="white" data-fill="#1eb0a9"
+			data-animate="10" data-size="150">
+			</div>
+			<div id="donut3" data-role="donut" data-value="0"
+			data-hole=".6" data-font-size='40' data-color="#084240" data-background="transparent" data-stroke="white" data-fill="#1eb0a9"
+			data-animate="10" data-size="150">
+			</div>
+			<div id="donut4" data-role="donut" data-value="0"
+			data-hole=".6" data-font-size='40' data-color="#084240" data-background="transparent" data-stroke="white" data-fill="#1eb0a9"
+			data-animate="10" data-size="150">
+			</div>
+		</div>
+		<br>
+	</div>
+	<p>Utilize o console do navegador para melhor visualizar saida e entrada de dados</p>
+	<div id="dialog" style='visibility:hidden' title="Serial Info">
+	  <p>Conectado na Serial</p>
+	</div>
+	<script>
+	const LEN_DYSPLAY=4;
+	//////////////////////////////-UI-------------------------
+	let colorNow="#18F7E8";
+	function setColor(value){
+		colorNow=value;
+		for(let i=0;i<LEN_DYSPLAY;i++){
+			document.getElementById("t"+i).style.color=value;
+		}
+	}
+	///-----CRIA DISPLAY 7 SEGMENTO-----
+	function onCreateView(){
+		let str="";
+		let inc=0;
+		for(x=0;x<1;x++){
+			str+="<div id='segmentDec' class='grid-container'>";
+			for(y=0;y<LEN_DYSPLAY;y++){
+				str+="<div id='t"+inc+"'>0</div>";
+				inc++;
+			}
+			str+="</div><br>";
+		}
+		document.getElementById("view").innerHTML=str;
+	}
+	///-------print data--
+	function printDateTime(){
+		let agora = new Date();
+		let opcoes = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' };
+		document.getElementById("time").innerHTML="Data e hora atual: " + agora.toLocaleDateString('pt-BR', opcoes);
+		document.getElementById("time").style.color="blue";
+		setTimeout(function(){document.getElementById("time").style.color="gray";}, 1000);
+	}
+	
+	onCreateView();
+	///////////////////////////////////////////////////////////////////
+	//////////////////-------------SERIAL--------------------/////////
+	//////////////////////////////////////////////////////////////////
+    const SerialJS = new SerialPort(); 
+	const connectButton = document.getElementById ('SerialConnectButton'); //Button conectar
+	const selectSpeed = document.getElementById("SerialSpeed");            //select speed
+	
+	///---Verificar se navegador possui Plugin---
+	if(SerialJS.check()){
+		connectButton.disabled = false;
+		connectButton.addEventListener('click', function () {
+		  let speed=parseInt(selectSpeed.options[selectSpeed.selectedIndex].value);
+		  if(SerialJS.open(speed)){ ///Conectar na porta selecionada
+			connectButton.innerText = 'Disconnect';
+			document.getElementById('SerialSpeed').disabled = true;
+		  }
+		  else{
+			connectButton.innerText = 'Connect';
+			document.getElementById('SerialSpeed').disabled = false;
+		  }
+		});
+	}
+	else{
+		connectButton.disabled = true;
+	}
+	
+	///Funcao asincrona de recebimento de dados
+	function onReceivedSerial(buffer){
+		for(let x=0;x<buffer.length;x++){
+			if(x<LEN_DYSPLAY)
+				document.getElementById("t"+x).innerHTML=buffer[x];
+		}
+		printDateTime();
+		convertToString(buffer);
+	}
+	
+
+	//-------
+	function sendBytes(){
+		SerialJS.write([0,127,128,255]);
+	}
+	//-------
+	function sendString(){
+		SerialJS.print("casa");
+	}
+	///------------UTIL--------
+	function convertToString(arrayBytes){
+		let bytes = new Uint8Array(arrayBytes); // Array de bytes
+		let string = new TextDecoder('utf-8').decode(bytes);
+		console.log("String: "+string); // Saída: "Hello World"
+	}
+
+	</script>
+	
+	<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+	<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+	<script src="https://cdn.metroui.org.ua/current/metro.js"></script>
+	
+	</body>
+</html>
+
